@@ -15,6 +15,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -143,6 +144,13 @@ class MediaService : MediaLibraryService(), SessionAvailabilityListener {
                 .setLoadControl(initializeLoadControl())
                 .build()
 
+        val params = player.trackSelectionParameters.buildUpon()
+            .setAudioOffloadPreferences(
+                TrackSelectionParameters.AudioOffloadPreferences.Builder().setAudioOffloadMode(
+                    TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+                ).build()
+            ).build()
+        player.trackSelectionParameters = params
         player.shuffleModeEnabled = Preferences.isShuffleModeEnabled()
         player.repeatMode = Preferences.getRepeatMode()
     }
