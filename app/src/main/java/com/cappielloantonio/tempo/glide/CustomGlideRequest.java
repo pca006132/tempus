@@ -115,6 +115,8 @@ public class CustomGlideRequest {
                                           String coverId,
                                           int size,
                                           CustomTarget<Bitmap> target) {
+        if (Preferences.isDataSavingMode())
+            return;
         String url = createUrl(coverId, size);
         Glide.with(context)
                 .asBitmap()
