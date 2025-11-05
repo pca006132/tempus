@@ -26,4 +26,11 @@ public class NetworkUtil {
 
         return true;
     }
+
+    public static boolean isWifi() {
+        ConnectivityManager manager = (ConnectivityManager)App.getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network network = manager.getActiveNetwork();
+        NetworkCapabilities networkCapabilities = manager.getNetworkCapabilities(network);
+        return networkCapabilities != null && networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+    }
 }

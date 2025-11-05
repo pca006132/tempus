@@ -21,6 +21,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.signature.ObjectKey;
 import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
+import com.cappielloantonio.tempo.util.NetworkUtil;
 import com.cappielloantonio.tempo.util.Preferences;
 import com.cappielloantonio.tempo.util.Util;
 import com.google.android.material.elevation.SurfaceColors;
@@ -115,7 +116,7 @@ public class CustomGlideRequest {
                                           String coverId,
                                           int size,
                                           CustomTarget<Bitmap> target) {
-        if (Preferences.isDataSavingMode())
+        if (Preferences.isDataSavingMode() && !NetworkUtil.isWifi())
             return;
         String url = createUrl(coverId, size);
         Glide.with(context)
@@ -132,7 +133,7 @@ public class CustomGlideRequest {
         private Builder(Context context, String item, ResourceType type) {
             this.requestManager = Glide.with(context);
 
-            if (item != null && !Preferences.isDataSavingMode()) {
+            if (item != null && (!Preferences.isDataSavingMode() || NetworkUtil.isWifi())) {
                 this.item = createUrl(item, Preferences.getImageSize());
             }
 

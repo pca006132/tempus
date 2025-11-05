@@ -57,12 +57,12 @@ public final class DownloadUtil {
     }
 
     public static RenderersFactory buildRenderersFactory(Context context, boolean preferExtensionRenderer) {
-        @DefaultRenderersFactory.ExtensionRendererMode int extensionRendererMode =
-                useExtensionRenderers()
-                        ? (preferExtensionRenderer ? DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
-                        : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
+//        @DefaultRenderersFactory.ExtensionRendererMode int extensionRendererMode =
+//                useExtensionRenderers()
+//                        ? (preferExtensionRenderer ? DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+//                        : DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
 
-        return new DefaultRenderersFactory(context.getApplicationContext()).setExtensionRendererMode(extensionRendererMode);
+        return new DefaultRenderersFactory(context.getApplicationContext());
     }
 
     public static synchronized DataSource.Factory getHttpDataSourceFactory() {

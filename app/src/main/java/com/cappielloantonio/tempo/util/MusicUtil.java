@@ -72,14 +72,11 @@ public class MusicUtil {
         s = m1.replaceAll("");
         Matcher m2 = FORMAT_PATTERN.matcher(s);
         s = m2.replaceAll("");
-        s = s.replace("&estimateContentLength=true", "");
 
         if (!Preferences.isServerPrioritized())
             s += "&maxBitRate=" + getBitratePreference();
         if (!Preferences.isServerPrioritized())
             s += "&format=" + getTranscodingFormatPreference();
-        if (Preferences.askForEstimateContentLength())
-            s += "&estimateContentLength=true";
 
         return Uri.parse(s);
     }

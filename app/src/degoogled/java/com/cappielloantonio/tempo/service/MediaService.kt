@@ -305,7 +305,7 @@ class MediaService : MediaLibraryService() {
         player = ExoPlayer.Builder(this)
             .setRenderersFactory(getRenderersFactory())
             .setMediaSourceFactory(getMediaSourceFactory())
-            .setAudioAttributes(AudioAttributes.DEFAULT, true)
+            .setAudioAttributes(AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setLoadControl(initializeLoadControl())

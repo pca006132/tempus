@@ -18,6 +18,8 @@ import com.cappielloantonio.tempo.subsonic.models.InternetRadioStation
 import com.cappielloantonio.tempo.subsonic.models.PodcastEpisode
 import com.cappielloantonio.tempo.util.Constants
 import com.cappielloantonio.tempo.util.MusicUtil
+import com.cappielloantonio.tempo.util.NetworkUtil
+import com.cappielloantonio.tempo.util.Preferences
 import com.cappielloantonio.tempo.util.Preferences.getImageSize
 import java.util.Date
 
@@ -197,7 +199,6 @@ class SessionMediaItem() {
 
     fun getMediaItem(): MediaItem {
         val uri: Uri = getStreamUri()
-        val artworkUri = Uri.parse(CustomGlideRequest.createUrl(coverArtId, getImageSize()))
 
         val bundle = Bundle()
         bundle.putString("id", id)
@@ -233,28 +234,32 @@ class SessionMediaItem() {
         bundle.putInt("originalHeight", originalHeight ?: 0)
         bundle.putString("uri", uri.toString())
 
+        val artworkUri = Uri.parse(CustomGlideRequest.createUrl(coverArtId, getImageSize()))
+        var builder = MediaMetadata.Builder()
+            .setTitle(title)
+            .setTrackNumber(track ?: 0)
+            .setDiscNumber(discNumber ?: 0)
+            .setReleaseYear(year ?: 0)
+            .setAlbumTitle(album)
+            .setArtist(artist)
+            .setUserRating(HeartRating(starred != null))
+            .setSupportedCommands(
+                listOf(
+                    Constants.CUSTOM_COMMAND_TOGGLE_HEART_ON,
+                    Constants.CUSTOM_COMMAND_TOGGLE_HEART_OFF
+                )
+            )
+            .setExtras(bundle)
+            .setIsBrowsable(false)
+            .setIsPlayable(true)
+
+        if (!Preferences.isDataSavingMode() || NetworkUtil.isWifi())
+            builder = builder.setArtworkUri(artworkUri)
+
         return MediaItem.Builder()
             .setMediaId(id!!)
             .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(title)
-                    .setTrackNumber(track ?: 0)
-                    .setDiscNumber(discNumber ?: 0)
-                    .setReleaseYear(year ?: 0)
-                    .setAlbumTitle(album)
-                    .setArtist(artist)
-                    .setArtworkUri(artworkUri)
-                    .setUserRating(HeartRating(starred != null))
-                    .setSupportedCommands(
-                        listOf(
-                            Constants.CUSTOM_COMMAND_TOGGLE_HEART_ON,
-                            Constants.CUSTOM_COMMAND_TOGGLE_HEART_OFF
-                        )
-                    )
-                    .setExtras(bundle)
-                    .setIsBrowsable(false)
-                    .setIsPlayable(true)
-                    .build()
+                builder.build()
             )
             .setRequestMetadata(
                 RequestMetadata.Builder()
