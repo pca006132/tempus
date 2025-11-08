@@ -14,6 +14,7 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaBrowser;
 import androidx.media3.session.SessionToken;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.glide.CustomGlideRequest;
 import com.cappielloantonio.tempo.model.Download;
@@ -120,9 +121,7 @@ public class DownloadedBottomSheetDialog extends BottomSheetDialogFragment imple
         TextView removeAll = view.findViewById(R.id.remove_all_text_view);
         removeAll.setOnClickListener(v -> {
             if (Preferences.getDownloadDirectoryUri() == null) {
-                List<MediaItem> mediaItems = MappingUtil.mapDownloads(songs);
-                List<Download> downloads = songs.stream().map(Download::new).collect(Collectors.toList());
-                DownloadUtil.getDownloadTracker(requireContext()).remove(mediaItems, downloads);
+                DownloadUtil.getDownloadTracker(requireContext()).remove(songs);
             } else {
                 songs.forEach(ExternalAudioReader::delete);
             }

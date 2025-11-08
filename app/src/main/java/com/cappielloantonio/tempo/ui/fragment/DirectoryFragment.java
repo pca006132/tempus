@@ -20,6 +20,7 @@ import androidx.media3.session.SessionToken;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.databinding.FragmentDirectoryBinding;
 import com.cappielloantonio.tempo.interfaces.ClickCallback;
@@ -112,10 +113,7 @@ public class DirectoryFragment extends Fragment implements ClickCallback {
                         if (isVisible() && getActivity() != null) {
                             List<Child> songs = directory.getChildren().stream().filter(child -> !child.isDir()).collect(Collectors.toList());
                             if (Preferences.getDownloadDirectoryUri() == null) {
-                                DownloadUtil.getDownloadTracker(requireContext()).download(
-                                        MappingUtil.mapDownloads(songs),
-                                        songs.stream().map(Download::new).collect(Collectors.toList())
-                                );
+                                DownloadUtil.getDownloadTracker(requireContext()).download(songs);
                             } else {
                                 songs.forEach(child -> ExternalAudioWriter.downloadToUserDirectory(requireContext(), child));
                             }

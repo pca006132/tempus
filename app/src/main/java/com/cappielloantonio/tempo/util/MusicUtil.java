@@ -11,7 +11,6 @@ import android.util.Log;
 import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.model.Download;
-import com.cappielloantonio.tempo.repository.DownloadRepository;
 import com.cappielloantonio.tempo.subsonic.models.Child;
 
 import java.text.CharacterIterator;
@@ -84,7 +83,7 @@ public class MusicUtil {
     public static Uri getDownloadUri(String id) {
         StringBuilder uri = new StringBuilder();
 
-        Download download = new DownloadRepository().getDownload(id);
+        Download download = DownloadUtil.getDownloadTracker(App.getContext()).getDownload(id);
 
         if (download == null || download.getDownloadUri().isEmpty()) {
             Map<String, String> params = App.getSubsonicClientInstance(false).getParams();

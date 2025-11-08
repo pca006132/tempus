@@ -22,6 +22,7 @@ import androidx.media3.session.MediaBrowser;
 import androidx.media3.session.SessionToken;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.glide.CustomGlideRequest;
 import com.cappielloantonio.tempo.interfaces.MediaCallback;
@@ -171,18 +172,15 @@ public class AlbumBottomSheetDialog extends BottomSheetDialogFragment implements
         }));
 
         TextView downloadAll = view.findViewById(R.id.download_all_text_view);
-        albumBottomSheetViewModel.getAlbumTracks().observe(getViewLifecycleOwner(), songs -> {
-            List<MediaItem> mediaItems = MappingUtil.mapDownloads(songs);
-            List<Download> downloads = songs.stream().map(Download::new).collect(Collectors.toList());
-
-            downloadAll.setOnClickListener(v -> {
+        downloadAll.setOnClickListener(v -> {
+            albumBottomSheetViewModel.getAlbumTracks().observe(getViewLifecycleOwner(), songs -> {
                 if (Preferences.getDownloadDirectoryUri() == null) {
-                    DownloadUtil.getDownloadTracker(requireContext()).download(mediaItems, downloads);
+                    DownloadUtil.getDownloadTracker(requireContext()).download(songs);
                 } else {
                     songs.forEach(child -> ExternalAudioWriter.downloadToUserDirectory(requireContext(), child));
                 }
-                dismissBottomSheet();
             });
+            dismissBottomSheet();
         });
 
         TextView addToPlaylist = view.findViewById(R.id.add_to_playlist_text_view);
@@ -200,20 +198,19 @@ public class AlbumBottomSheetDialog extends BottomSheetDialogFragment implements
         });
 
         removeAllTextView = view.findViewById(R.id.remove_all_text_view);
-        albumBottomSheetViewModel.getAlbumTracks().observe(getViewLifecycleOwner(), songs -> {
-            currentAlbumTracks = songs != null ? songs : Collections.emptyList();
-            currentAlbumMediaItems = MappingUtil.mapDownloads(currentAlbumTracks);
-
-            removeAllTextView.setOnClickListener(v -> {
+        removeAllTextView.setOnClickListener(v -> {
+            albumBottomSheetViewModel.getAlbumTracks().observe(getViewLifecycleOwner(), songs -> {
                 if (Preferences.getDownloadDirectoryUri() == null) {
-                    List<Download> downloads = currentAlbumTracks.stream().map(Download::new).collect(Collectors.toList());
-                    DownloadUtil.getDownloadTracker(requireContext()).remove(currentAlbumMediaItems, downloads);
+                    DownloadUtil.getDownloadTracker(requireContext()).remove(currentAlbumTracks);
                 } else {
                     currentAlbumTracks.forEach(ExternalAudioReader::delete);
                 }
-                dismissBottomSheet();
+                // FIXME: ???
+                currentAlbumTracks = songs != null ? songs : Collections.emptyList();
+//                currentAlbumMediaItems = MappingUtil.mapDownloads(currentAlbumTracks);
+//                updateRemoveAllVisibility();
             });
-            updateRemoveAllVisibility();
+            dismissBottomSheet();
         });
 
         TextView goToArtist = view.findViewById(R.id.go_to_artist_text_view);

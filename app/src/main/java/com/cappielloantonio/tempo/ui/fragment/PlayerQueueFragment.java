@@ -32,6 +32,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 @UnstableApi
 public class PlayerQueueFragment extends Fragment implements ClickCallback {
     private static final String TAG = "PlayerQueueFragment";
@@ -118,13 +123,12 @@ public class PlayerQueueFragment extends Fragment implements ClickCallback {
         bind.playerQueueRecyclerView.setAdapter(playerSongQueueAdapter);
         reapplyPlayback();
 
-        playerBottomSheetViewModel.getQueueSong().observe(getViewLifecycleOwner(), queue -> {
-            if (queue != null) {
-                playerSongQueueAdapter.setItems(queue.stream().map(item -> (Child) item).collect(Collectors.toList()));
+        playerBottomSheetViewModel.getQueueSongLive().observe(getViewLifecycleOwner(), songs -> {
+            if (songs != null) {
+                playerSongQueueAdapter.setItems(songs);
                 reapplyPlayback();
             }
         });
-
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP | ItemTouchHelper.DOWN, ItemTouchHelper.LEFT) {
             int originalPosition = -1;
             int fromPosition = -1;

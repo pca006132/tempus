@@ -914,40 +914,6 @@ public class AutomotiveRepository {
         thread.start();
     }
 
-    public SessionMediaItem getSessionMediaItem(String id) {
-        SessionMediaItem sessionMediaItem = null;
-
-        GetMediaItemThreadSafe getMediaItemThreadSafe = new GetMediaItemThreadSafe(sessionMediaItemDao, id);
-        Thread thread = new Thread(getMediaItemThreadSafe);
-        thread.start();
-
-        try {
-            thread.join();
-            sessionMediaItem = getMediaItemThreadSafe.getSessionMediaItem();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return sessionMediaItem;
-    }
-
-    public List<MediaItem> getMetadatas(long timestamp) {
-        List<MediaItem> mediaItems = Collections.emptyList();
-
-        GetMediaItemsThreadSafe getMediaItemsThreadSafe = new GetMediaItemsThreadSafe(sessionMediaItemDao, timestamp);
-        Thread thread = new Thread(getMediaItemsThreadSafe);
-        thread.start();
-
-        try {
-            thread.join();
-            mediaItems = getMediaItemsThreadSafe.getMediaItems();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        return mediaItems;
-    }
-
     public void deleteMetadata() {
         DeleteAllThreadSafe delete = new DeleteAllThreadSafe(sessionMediaItemDao);
         Thread thread = new Thread(delete);
@@ -972,28 +938,6 @@ public class AutomotiveRepository {
 
         public SessionMediaItem getSessionMediaItem() {
             return sessionMediaItem;
-        }
-    }
-
-    @OptIn(markerClass = UnstableApi.class)
-    private static class GetMediaItemsThreadSafe implements Runnable {
-        private final SessionMediaItemDao sessionMediaItemDao;
-        private final Long timestamp;
-        private final List<MediaItem> mediaItems = new ArrayList<>();
-
-        public GetMediaItemsThreadSafe(SessionMediaItemDao sessionMediaItemDao, Long timestamp) {
-            this.sessionMediaItemDao = sessionMediaItemDao;
-            this.timestamp = timestamp;
-        }
-
-        @Override
-        public void run() {
-            List<SessionMediaItem> sessionMediaItems = sessionMediaItemDao.get(timestamp);
-            sessionMediaItems.forEach(sessionMediaItem -> mediaItems.add(sessionMediaItem.getMediaItem()));
-        }
-
-        public List<MediaItem> getMediaItems() {
-            return mediaItems;
         }
     }
 

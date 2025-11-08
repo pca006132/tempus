@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import androidx.media3.session.SessionToken;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.databinding.FragmentSearchBinding;
 import com.cappielloantonio.tempo.helper.recyclerview.CustomLinearSnapHelper;
@@ -34,8 +36,16 @@ import com.cappielloantonio.tempo.util.Constants;
 import com.cappielloantonio.tempo.viewmodel.PlaybackViewModel;
 import com.cappielloantonio.tempo.viewmodel.SearchViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 @UnstableApi
 public class SearchFragment extends Fragment implements ClickCallback {
@@ -51,6 +61,8 @@ public class SearchFragment extends Fragment implements ClickCallback {
     private SongHorizontalAdapter songHorizontalAdapter;
 
     private ListenableFuture<MediaBrowser> mediaBrowserListenableFuture;
+
+    private CompositeDisposable composite = new CompositeDisposable();
 
     @Nullable
     @Override
@@ -92,6 +104,7 @@ public class SearchFragment extends Fragment implements ClickCallback {
 
     @Override
     public void onDestroyView() {
+        composite.clear();
         super.onDestroyView();
         bind = null;
     }
@@ -166,30 +179,42 @@ public class SearchFragment extends Fragment implements ClickCallback {
 
                     }
                 });
+
+        bind.searchView.getToolbar().setNavigationOnClickListener(v -> {
+            Log.d("Search", "go back");
+            Navigation.findNavController(requireView()).popBackStack();
+        });
     }
 
     public void setRecentSuggestions() {
         bind.searchViewSuggestionContainer.removeAllViews();
 
-        for (String suggestion : searchViewModel.getRecentSearchSuggestion()) {
-            View view = LayoutInflater.from(bind.searchViewSuggestionContainer.getContext()).inflate(R.layout.item_search_suggestion, bind.searchViewSuggestionContainer, false);
+        Disposable disposable = searchViewModel.getRecentSearchSuggestion()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(suggestions -> {
+                    for (String suggestion : suggestions) {
+                        View view = LayoutInflater.from(bind.searchViewSuggestionContainer.getContext())
+                                .inflate(R.layout.item_search_suggestion, bind.searchViewSuggestionContainer, false);
 
-            ImageView leadingImageView = view.findViewById(R.id.search_suggestion_icon);
-            TextView titleView = view.findViewById(R.id.search_suggestion_title);
-            ImageView tailingImageView = view.findViewById(R.id.search_suggestion_delete_icon);
+                        ImageView leadingImageView = view.findViewById(R.id.search_suggestion_icon);
+                        TextView titleView = view.findViewById(R.id.search_suggestion_title);
+                        ImageView tailingImageView = view.findViewById(R.id.search_suggestion_delete_icon);
 
-            leadingImageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_history, null));
-            titleView.setText(suggestion);
+                        leadingImageView.setImageDrawable(getResources().getDrawable(R.drawable.ic_history, null));
+                        titleView.setText(suggestion);
 
-            view.setOnClickListener(v -> search(suggestion));
+                        view.setOnClickListener(v -> search(suggestion));
 
-            tailingImageView.setOnClickListener(v -> {
-                searchViewModel.deleteRecentSearch(suggestion);
-                setRecentSuggestions();
-            });
+                        tailingImageView.setOnClickListener(v -> {
+                            searchViewModel.deleteRecentSearch(suggestion);
+                            setRecentSuggestions();
+                        });
 
-            bind.searchViewSuggestionContainer.addView(view);
-        }
+                        bind.searchViewSuggestionContainer.addView(view);
+                    }
+                });
+        composite.add(disposable);
     }
 
     public void setSearchSuggestions(String query) {

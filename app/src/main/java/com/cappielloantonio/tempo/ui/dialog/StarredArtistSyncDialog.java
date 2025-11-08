@@ -11,6 +11,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.util.UnstableApi;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.databinding.DialogStarredArtistSyncBinding;
 import com.cappielloantonio.tempo.model.Download;
@@ -62,10 +63,7 @@ public class StarredArtistSyncDialog extends DialogFragment {
             positiveButton.setOnClickListener(v -> {
                 starredArtistsSyncViewModel.getStarredArtistSongs(requireActivity()).observe(this, allSongs -> {
                     if (allSongs != null && !allSongs.isEmpty()) {
-                        DownloadUtil.getDownloadTracker(context).download(
-                                MappingUtil.mapDownloads(allSongs),
-                                allSongs.stream().map(Download::new).collect(Collectors.toList())
-                        );
+                        DownloadUtil.getDownloadTracker(context).download(allSongs);
                     }
                     dialog.dismiss();
                 });

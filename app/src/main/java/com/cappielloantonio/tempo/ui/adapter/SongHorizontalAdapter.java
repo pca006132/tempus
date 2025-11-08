@@ -186,6 +186,9 @@ public class SongHorizontalAdapter extends RecyclerView.Adapter<SongHorizontalAd
                     holder.item.discTitleTextView.setText(holder.itemView.getContext().getString(R.string.disc_titlefull, discTitle.get().getDisc().toString() , discTitle.get().getTitle()));
                 }
             }
+        } else {
+            holder.item.differentDiskDividerSector.setVisibility(View.GONE);
+            holder.item.discTitleTextView.setText("");
         }
 
         if (Preferences.showItemRating()) {

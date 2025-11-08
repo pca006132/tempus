@@ -50,6 +50,7 @@ import com.cappielloantonio.tempo.util.ExternalAudioWriter;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @UnstableApi
 public class SongBottomSheetDialog extends BottomSheetDialogFragment implements View.OnClickListener {
@@ -190,10 +191,7 @@ public class SongBottomSheetDialog extends BottomSheetDialogFragment implements 
         downloadButton = view.findViewById(R.id.download_text_view);
         downloadButton.setOnClickListener(v -> {
             if (Preferences.getDownloadDirectoryUri() == null) {
-                DownloadUtil.getDownloadTracker(requireContext()).download(
-                        MappingUtil.mapDownload(song),
-                        new Download(song)
-                );
+                DownloadUtil.getDownloadTracker(requireContext()).download(List.of(song));
             } else {
                 ExternalAudioWriter.downloadToUserDirectory(requireContext(), song);
             }
@@ -203,10 +201,7 @@ public class SongBottomSheetDialog extends BottomSheetDialogFragment implements 
         removeButton = view.findViewById(R.id.remove_text_view);
         removeButton.setOnClickListener(v -> {
             if (Preferences.getDownloadDirectoryUri() == null) {
-                DownloadUtil.getDownloadTracker(requireContext()).remove(
-                        MappingUtil.mapDownload(song),
-                        new Download(song)
-                );
+                DownloadUtil.getDownloadTracker(requireContext()).remove(List.of(song));
             } else {
                 ExternalAudioReader.delete(song);
             }

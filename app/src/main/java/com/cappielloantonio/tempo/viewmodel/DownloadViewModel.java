@@ -11,6 +11,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.documentfile.provider.DocumentFile;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.model.Download;
 import com.cappielloantonio.tempo.model.DownloadStack;
 import com.cappielloantonio.tempo.repository.DownloadRepository;
@@ -40,7 +41,10 @@ public class DownloadViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<Child>> getDownloadedTracks(LifecycleOwner owner) {
-        downloadRepository.getLiveDownload().observe(owner, downloads -> downloadedTrackSample.postValue(downloads.stream().map(download -> (Child) download).collect(Collectors.toList())));
+        downloadRepository.getLiveDownload().observe(owner, downloads -> {
+            Log.d("Download", "got downloads " + downloads.size());
+            downloadedTrackSample.postValue(downloads.stream().map(download -> (Child) download).collect(Collectors.toList()));
+        });
         return downloadedTrackSample;
     }
 
@@ -71,7 +75,7 @@ public class DownloadViewModel extends AndroidViewModel {
     }
 
     public void refreshExternalDownloads() {
-        new Thread(() -> {
+        App.getExecutor().submit(() -> {
             String directoryUri = Preferences.getDownloadDirectoryUri();
             if (directoryUri == null) {
                 refreshResult.postValue(-1);
@@ -122,6 +126,6 @@ public class DownloadViewModel extends AndroidViewModel {
             } else {
                 refreshResult.postValue(0);
             }
-        }).start();
+        });
     }
 }

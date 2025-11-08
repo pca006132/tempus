@@ -10,9 +10,13 @@ import com.cappielloantonio.tempo.model.RecentSearch;
 import com.cappielloantonio.tempo.repository.SearchingRepository;
 import com.cappielloantonio.tempo.subsonic.models.SearchResult2;
 import com.cappielloantonio.tempo.subsonic.models.SearchResult3;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 
 public class SearchViewModel extends AndroidViewModel {
     private static final String TAG = "SearchViewModel";
@@ -59,10 +63,7 @@ public class SearchViewModel extends AndroidViewModel {
         return searchingRepository.getSuggestions(query);
     }
 
-    public List<String> getRecentSearchSuggestion() {
-        ArrayList<String> suggestions = new ArrayList<>();
-        suggestions.addAll(searchingRepository.getRecentSearchSuggestion());
-
-        return suggestions;
+    public Maybe<List<String>> getRecentSearchSuggestion() {
+        return searchingRepository.getRecentSearchSuggestion();
     }
 }

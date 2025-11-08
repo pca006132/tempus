@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import java.util.ArrayList;
+import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -21,6 +22,7 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaBrowser;
 import androidx.media3.session.SessionToken;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.databinding.InnerFragmentPlayerCoverBinding;
 import com.cappielloantonio.tempo.glide.CustomGlideRequest;
@@ -39,12 +41,15 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+
 @UnstableApi
 public class PlayerCoverFragment extends Fragment {
     private PlayerBottomSheetViewModel playerBottomSheetViewModel;
     private InnerFragmentPlayerCoverBinding bind;
     private ListenableFuture<MediaBrowser> mediaBrowserListenableFuture;
 
+    private CompositeDisposable composite = new CompositeDisposable();
     private final Handler handler = new Handler();
 
     @Override
@@ -76,6 +81,7 @@ public class PlayerCoverFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        composite.clear();
         super.onDestroyView();
         bind = null;
     }
@@ -118,10 +124,7 @@ public class PlayerCoverFragment extends Fragment {
             if (song != null && bind != null) {
                 bind.innerButtonTopLeft.setOnClickListener(view -> {
                     if (Preferences.getDownloadDirectoryUri() == null) {
-                        DownloadUtil.getDownloadTracker(requireContext()).download(
-                                MappingUtil.mapDownload(song),
-                                new Download(song)
-                        );
+                        DownloadUtil.getDownloadTracker(requireContext()).download(List.of(song));
                     } else {
                         ExternalAudioWriter.downloadToUserDirectory(requireContext(), song);
                     }
@@ -146,9 +149,10 @@ public class PlayerCoverFragment extends Fragment {
                 });
 
                 bind.innerButtonBottomRight.setOnClickListener(view -> {
-                    if (playerBottomSheetViewModel.savePlayQueue()) {
-                        Snackbar.make(requireView(), R.string.player_queue_save_queue_success, Snackbar.LENGTH_LONG).show();
-                    }
+                    playerBottomSheetViewModel.savePlayQueue(saved -> {
+                        if (saved)
+                            Snackbar.make(requireView(), R.string.player_queue_save_queue_success, Snackbar.LENGTH_LONG).show();
+                    }, composite);
                 });
 
                 bind.innerButtonBottomRightAlternative.setOnClickListener(view -> {

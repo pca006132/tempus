@@ -9,6 +9,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.model.Download;
 import com.cappielloantonio.tempo.interfaces.StarCallback;
 import com.cappielloantonio.tempo.repository.AlbumRepository;
@@ -119,10 +120,7 @@ public class AlbumBottomSheetViewModel extends AndroidViewModel {
                     @Override
                     public void onChanged(List<Child> songs) {
                         if (songs != null && !songs.isEmpty()) {
-                            DownloadUtil.getDownloadTracker(context).download(
-                                    MappingUtil.mapDownloads(songs),
-                                    songs.stream().map(Download::new).collect(Collectors.toList())
-                            );
+                            DownloadUtil.getDownloadTracker(context).download(songs);
                         }
                         tracksLiveData.removeObserver(this);
                     }

@@ -11,6 +11,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.util.UnstableApi;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.databinding.DialogStarredSyncBinding;
 import com.cappielloantonio.tempo.model.Download;
@@ -62,10 +63,7 @@ public class StarredSyncDialog extends DialogFragment {
             positiveButton.setOnClickListener(v -> {
                 starredSyncViewModel.getStarredTracks(requireActivity()).observe(requireActivity(), songs -> {
                     if (songs != null && Preferences.getDownloadDirectoryUri() == null) {
-                        DownloadUtil.getDownloadTracker(context).download(
-                                MappingUtil.mapDownloads(songs),
-                                songs.stream().map(Download::new).collect(Collectors.toList())
-                        );
+                        DownloadUtil.getDownloadTracker(context).download(songs);
                     }
 
                     dialog.dismiss();

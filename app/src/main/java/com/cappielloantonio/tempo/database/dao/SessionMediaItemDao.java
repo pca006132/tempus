@@ -1,15 +1,19 @@
 package com.cappielloantonio.tempo.database.dao;
 
+import androidx.annotation.OptIn;
+import androidx.lifecycle.LiveData;
+import androidx.media3.common.util.UnstableApi;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
-import com.cappielloantonio.tempo.model.Queue;
 import com.cappielloantonio.tempo.model.SessionMediaItem;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 
+@OptIn(markerClass = UnstableApi.class)
 @Dao
 public interface SessionMediaItemDao {
     @Query("SELECT * FROM session_media_item WHERE id = :id")

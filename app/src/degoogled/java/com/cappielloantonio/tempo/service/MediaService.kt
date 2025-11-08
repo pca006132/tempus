@@ -19,10 +19,10 @@ import android.os.IBinder
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
+import android.util.AndroidException
 import android.util.Log
 import androidx.media3.common.*
 import androidx.media3.common.Player.REPEAT_MODE_ALL
-import androidx.media3.common.Player.RepeatMode
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -31,6 +31,7 @@ import androidx.media3.session.*
 import androidx.media3.session.MediaSession.ControllerInfo
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.cappielloantonio.tempo.App
 import com.cappielloantonio.tempo.R
 import com.cappielloantonio.tempo.glide.CustomGlideRequest
 import com.cappielloantonio.tempo.repository.QueueRepository
@@ -46,6 +47,11 @@ import com.cappielloantonio.tempo.widget.WidgetUpdateManager
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.Optional
 
 
@@ -53,6 +59,7 @@ import java.util.Optional
 class MediaService : MediaLibraryService() {
     private val librarySessionCallback = CustomMediaLibrarySessionCallback()
 
+    private val TAG = "MediaService";
     private lateinit var player: ExoPlayer
     private lateinit var mediaLibrarySession: MediaLibrarySession
     private lateinit var shuffleCommands: List<CommandButton>
@@ -73,6 +80,8 @@ class MediaService : MediaLibraryService() {
             widgetUpdateHandler.postDelayed(this, WIDGET_UPDATE_INTERVAL_MS)
         }
     }
+
+    private val composite = CompositeDisposable()
 
     private var prevPlayerStates = Triple(false, false, -1)
     @Volatile private var nowPlayingChanged = false
@@ -169,6 +178,7 @@ class MediaService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        composite.clear()
         unregisterReceiver(broadCastReceiver)
         releaseNetworkCallback()
         equalizerManager.release()
@@ -192,6 +202,7 @@ class MediaService : MediaLibraryService() {
             session: MediaSession,
             controller: ControllerInfo
         ): MediaSession.ConnectionResult {
+            Log.d(TAG, "onConnect");
             val connectionResult = super.onConnect(session, controller)
             val availableSessionCommands = connectionResult.availableSessionCommands.buildUpon()
 
@@ -209,6 +220,7 @@ class MediaService : MediaLibraryService() {
         }
 
         override fun onPostConnect(session: MediaSession, controller: ControllerInfo) {
+            Log.d(TAG, "onPostConnect");
             if (!customLayout.isEmpty() && controller.controllerVersion != 0) {
                 ignoreFuture(mediaLibrarySession.setCustomLayout(controller, customLayout))
             }
@@ -230,6 +242,7 @@ class MediaService : MediaLibraryService() {
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
+            Log.d(TAG, "onCustomCommand");
             when (customCommand.customAction) {
                 CUSTOM_COMMAND_TOGGLE_SHUFFLE_MODE_ON -> player.shuffleModeEnabled = true
                 CUSTOM_COMMAND_TOGGLE_SHUFFLE_MODE_OFF -> player.shuffleModeEnabled = false
@@ -256,6 +269,7 @@ class MediaService : MediaLibraryService() {
             controller: ControllerInfo,
             mediaItems: List<MediaItem>
         ): ListenableFuture<List<MediaItem>> {
+            Log.d(TAG, "onAddMediaItems");
             val updatedMediaItems = mediaItems.map { mediaItem ->
                 val mediaMetadata = mediaItem.mediaMetadata
 
@@ -311,13 +325,13 @@ class MediaService : MediaLibraryService() {
             .setLoadControl(initializeLoadControl())
             .build()
 
-        val params = player.trackSelectionParameters.buildUpon()
-            .setAudioOffloadPreferences(
-                TrackSelectionParameters.AudioOffloadPreferences.Builder().setAudioOffloadMode(
-                    TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-                ).build()
-            ).build()
-        player.trackSelectionParameters = params
+//        val params = player.trackSelectionParameters.buildUpon()
+//            .setAudioOffloadPreferences(
+//                TrackSelectionParameters.AudioOffloadPreferences.Builder().setAudioOffloadMode(
+//                    TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+//                ).build()
+//            ).build()
+//        player.trackSelectionParameters = params
         player.shuffleModeEnabled = Preferences.isShuffleModeEnabled()
         player.repeatMode = Preferences.getRepeatMode()
     }
@@ -367,34 +381,33 @@ class MediaService : MediaLibraryService() {
 
     private fun restorePlayerFromQueue() {
         if (player.mediaItemCount > 0) return
-
         val queueRepository = QueueRepository()
-        val storedQueue = queueRepository.media
-        if (storedQueue.isNullOrEmpty()) return
-
-        val mediaItems = MappingUtil.mapMediaItems(storedQueue)
-        if (mediaItems.isEmpty()) return
-
-        val lastIndex = try {
-            queueRepository.lastPlayedMediaIndex
-        } catch (_: Exception) {
-            0
-        }.coerceIn(0, mediaItems.size - 1)
-
-        val lastPosition = try {
-            queueRepository.lastPlayedMediaTimestamp
-        } catch (_: Exception) {
-            0L
-        }.let { if (it < 0L) 0L else it }
-
-        player.setMediaItems(mediaItems, lastIndex, lastPosition)
-        player.prepare()
-        updateWidget()
+        val disposable = Maybe.zip(
+            queueRepository.media,
+            Maybe.zip(
+                queueRepository.lastPlayedMediaIndex,
+                queueRepository.lastPlayedMediaTimestamp,
+                { a, b -> Pair(a, b) }
+            ),
+            { a, b -> Pair(a, b) }
+        ).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+            .subscribe { result ->
+                if (result.first.isEmpty()) return@subscribe
+                val mediaItems = MappingUtil.mapMediaItems(result.first)
+                if (mediaItems.isEmpty()) return@subscribe
+                val lastIndex = result.second.first.coerceIn(0, mediaItems.size - 1)
+                val lastPosition = result.second.second.coerceAtLeast(0L)
+                player.setMediaItems(mediaItems, lastIndex, lastPosition)
+                player.prepare()
+                updateWidget()
+            }
+        composite.add(disposable)
     }
 
     private fun initializePlayerListener() {
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                Log.d(TAG, "onMediaItemTransition");
                 if (mediaItem == null) return
 
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK || reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
@@ -404,23 +417,35 @@ class MediaService : MediaLibraryService() {
             }
 
             override fun onTracksChanged(tracks: Tracks) {
+                Log.d(TAG, "onTracksChanged");
                 ReplayGainUtil.setReplayGain(player, tracks)
                 val currentMediaItem = player.currentMediaItem
 
+                Log.d("Player", "trackChanged");
                 if (currentMediaItem != null) {
                     val item = MappingUtil.mapMediaItem(currentMediaItem)
-                    if (item.requestMetadata.mediaUri != currentMediaItem.requestMetadata.mediaUri)
+                    Log.d("Player", "url1: " + item.requestMetadata.mediaUri);
+                    Log.d("Player", "url2: " + currentMediaItem.requestMetadata.mediaUri);
+                    if (!item.requestMetadata.mediaUri!!.equals(currentMediaItem.requestMetadata.mediaUri)) {
+                        Log.d("Player", "replaced 1");
                         player.replaceMediaItem(player.currentMediaItemIndex, item)
+                    }
 
                     if (item.mediaMetadata.extras != null) {
                         MediaManager.scrobble(item, false)
                     }
                 }
 
-                if (player.currentMediaItemIndex + 1 < player.mediaItemCount)
-                    player.replaceMediaItem(
-                        player.currentMediaItemIndex + 1,
-                        MappingUtil.mapMediaItem(player.getMediaItemAt(player.currentMediaItemIndex + 1)))
+                if (player.currentMediaItemIndex + 1 < player.mediaItemCount) {
+                    val old = player.getMediaItemAt(player.currentMediaItemIndex + 1);
+                    val item = MappingUtil.mapMediaItem(old);
+                    if (!item.requestMetadata.mediaUri!!.equals(old.requestMetadata.mediaUri)) {
+                        Log.d("Player", "replaced 2");
+                        player.replaceMediaItem(
+                            player.currentMediaItemIndex + 1,
+                            item )
+                    }
+                }
 
                 if (player.currentMediaItemIndex + 1 == player.mediaItemCount) {
                     if (player.repeatMode == REPEAT_MODE_ALL && player.mediaItemCount > 1)
@@ -432,6 +457,7 @@ class MediaService : MediaLibraryService() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                Log.d(TAG, "onIsPlayingChanged");
                 nowPlayingChanged = true
                 artCacheUpdated = false
                 artCache = null
@@ -453,6 +479,7 @@ class MediaService : MediaLibraryService() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                Log.d(TAG, "onPlaybackStateChanged");
                 super.onPlaybackStateChanged(playbackState)
                 if (!player.hasNextMediaItem() &&
                     playbackState == Player.STATE_ENDED &&
@@ -469,6 +496,7 @@ class MediaService : MediaLibraryService() {
                 newPosition: Player.PositionInfo,
                 reason: Int
             ) {
+                Log.d(TAG, "onPositionDiscontinuity");
                 super.onPositionDiscontinuity(oldPosition, newPosition, reason)
 
                 if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
@@ -484,12 +512,14 @@ class MediaService : MediaLibraryService() {
             }
 
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                Log.d(TAG, "onShuffleModeChange");
                 Preferences.setShuffleModeEnabled(shuffleModeEnabled)
                 customLayout = librarySessionCallback.buildCustomLayout(player)
                 mediaLibrarySession.setCustomLayout(customLayout)
             }
 
             override fun onRepeatModeChanged(repeatMode: Int) {
+                Log.d(TAG, "onRepeatModeChange");
                 Preferences.setRepeatMode(repeatMode)
                 customLayout = librarySessionCallback.buildCustomLayout(player)
                 mediaLibrarySession.setCustomLayout(customLayout)

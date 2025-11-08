@@ -1,6 +1,7 @@
 package com.cappielloantonio.tempo.ui.fragment;
 
 import android.content.ComponentName;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -14,6 +15,7 @@ import androidx.annotation.OptIn;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
@@ -41,6 +43,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+
 @OptIn(markerClass = UnstableApi.class)
 public class PlayerBottomSheetFragment extends Fragment {
     private FragmentPlayerBottomSheetBinding bind;
@@ -48,8 +52,13 @@ public class PlayerBottomSheetFragment extends Fragment {
     private PlayerBottomSheetViewModel playerBottomSheetViewModel;
     private ListenableFuture<MediaBrowser> mediaBrowserListenableFuture;
 
+    @Nullable
+    private Uri previousUri = null;
+
     private Handler progressBarHandler = null;
     private Runnable progressBarRunnable;
+
+    private CompositeDisposable composite = new CompositeDisposable();
 
     @Nullable
     @Override
@@ -91,6 +100,7 @@ public class PlayerBottomSheetFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        composite.clear();
         super.onDestroyView();
         bind = null;
     }
@@ -134,8 +144,14 @@ public class PlayerBottomSheetFragment extends Fragment {
     private void setMediaControllerListener(MediaBrowser mediaBrowser) {
         defineProgressBarHandler(mediaBrowser);
         setMediaControllerUI(mediaBrowser);
-        setMetadata(mediaBrowser.getMediaMetadata());
-        setContentDuration(mediaBrowser.getContentDuration());
+
+        MediaItem item = mediaBrowser.getCurrentMediaItem();
+        Uri uri = item == null ? null : item.requestMetadata.mediaUri;
+        if (!Objects.equals(uri, previousUri)) {
+            previousUri = uri;
+            setMetadata(mediaBrowser.getMediaMetadata());
+            setContentDuration(mediaBrowser.getContentDuration());
+        }
         setPlayingState(mediaBrowser.isPlaying());
         setHeaderMediaController();
         setHeaderNextButtonState(mediaBrowser.hasNextMediaItem());
@@ -143,6 +159,7 @@ public class PlayerBottomSheetFragment extends Fragment {
         mediaBrowser.addListener(new Player.Listener() {
             @Override
             public void onMediaMetadataChanged(@NonNull MediaMetadata mediaMetadata) {
+                Log.d("Player", "MetadataChanged");
                 setMediaControllerUI(mediaBrowser);
                 setMetadata(mediaMetadata);
                 setContentDuration(mediaBrowser.getContentDuration());
@@ -177,7 +194,7 @@ public class PlayerBottomSheetFragment extends Fragment {
 
     private void setMetadata(MediaMetadata mediaMetadata) {
         if (mediaMetadata.extras != null) {
-            playerBottomSheetViewModel.setLiveMedia(getViewLifecycleOwner(), mediaMetadata.extras.getString("type"), mediaMetadata.extras.getString("id"));
+            playerBottomSheetViewModel.setLiveMedia(getViewLifecycleOwner(), mediaMetadata.extras.getString("type"), mediaMetadata.extras.getString("id"), composite);
             playerBottomSheetViewModel.setLiveAlbum(getViewLifecycleOwner(), mediaMetadata.extras.getString("type"), mediaMetadata.extras.getString("albumId"));
             playerBottomSheetViewModel.setLiveArtist(getViewLifecycleOwner(), mediaMetadata.extras.getString("type"), mediaMetadata.extras.getString("artistId"));
             playerBottomSheetViewModel.setLiveDescription(mediaMetadata.extras.getString("description", null));

@@ -22,6 +22,7 @@ import androidx.media3.exoplayer.RenderersFactory;
 import androidx.media3.exoplayer.offline.DownloadManager;
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.service.DownloaderManager;
 
 import java.io.File;
@@ -149,7 +150,7 @@ public final class DownloadUtil {
                     getDatabaseProvider(context),
                     getDownloadCache(context),
                     getHttpDataSourceFactory(),
-                    Executors.newFixedThreadPool(6)
+                    Executors.newFixedThreadPool(4)
             );
 
             downloaderManager = new DownloaderManager(context, getHttpDataSourceFactory(), downloadManager);

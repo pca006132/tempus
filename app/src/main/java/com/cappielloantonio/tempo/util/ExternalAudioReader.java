@@ -26,7 +26,6 @@ public class ExternalAudioReader {
 
     private static final Map<String, DocumentFile> cache = new ConcurrentHashMap<>();
     private static final Object LOCK = new Object();
-    private static final ExecutorService REFRESH_EXECUTOR = Executors.newSingleThreadExecutor();
     private static final MutableLiveData<Long> refreshEvents = new MutableLiveData<>();
 
     private static volatile String cachedDirUri;
@@ -163,7 +162,7 @@ public class ExternalAudioReader {
         }
 
         refreshInProgress = true;
-        REFRESH_EXECUTOR.execute(() -> {
+        App.getExecutor().submit(() -> {
             try {
                 rebuildCache();
             } finally {
