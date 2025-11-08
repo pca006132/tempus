@@ -1,8 +1,10 @@
 package com.cappielloantonio.tempo.ui.fragment;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -108,8 +110,15 @@ public class ArtistCatalogueFragment extends Fragment implements ClickCallback {
 
     @SuppressLint("ClickableViewAccessibility")
     private void initArtistCatalogueView() {
-        bind.artistCatalogueRecyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
-        bind.artistCatalogueRecyclerView.addItemDecoration(new GridItemDecoration(2, 20, false));
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager()
+                .getDefaultDisplay()
+                .getMetrics(displayMetrics);
+        int height = displayMetrics.heightPixels;
+        int width = displayMetrics.widthPixels;
+        int spanCount = height < width ? 5 : 2;
+        bind.artistCatalogueRecyclerView.setLayoutManager(new GridLayoutManager(requireContext(), spanCount));
+        bind.artistCatalogueRecyclerView.addItemDecoration(new GridItemDecoration(spanCount, 20, false));
         bind.artistCatalogueRecyclerView.setHasFixedSize(true);
 
         artistAdapter = new ArtistCatalogueAdapter(this);

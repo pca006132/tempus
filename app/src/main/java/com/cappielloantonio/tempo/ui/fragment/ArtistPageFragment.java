@@ -1,9 +1,12 @@
 package com.cappielloantonio.tempo.ui.fragment;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -195,9 +198,22 @@ public class ArtistPageFragment extends Fragment implements ClickCallback {
     }
 
     private void initAlbumsView() {
-        bind.albumsRecyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 2));
-        bind.albumsRecyclerView.addItemDecoration(new GridItemDecoration(2, 20, false));
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        ((Activity) getContext()).getWindowManager()
+                .getDefaultDisplay()
+                .getMetrics(displayMetrics);
+        int height = displayMetrics.heightPixels;
+        int width = displayMetrics.widthPixels;
+        int spanCount = height < width ? 5 : 2;
+        bind.albumsRecyclerView.setLayoutManager(new GridLayoutManager(requireContext(), spanCount));
+        Log.d("ArtistPage", "width: " + width);
+        // FIXME: should be adaptive when rotation happens
+        bind.albumsRecyclerView.addItemDecoration(new GridItemDecoration(spanCount, 20, false));
         bind.albumsRecyclerView.setHasFixedSize(true);
+        ViewGroup.LayoutParams params = bind.albumsRecyclerView.getLayoutParams();
+        params.height = height;
+        bind.albumsRecyclerView.setLayoutParams(params);
+        Log.d("ArtistPage", "height: " + params.height);
 
         albumCatalogueAdapter = new AlbumCatalogueAdapter(this, false);
         bind.albumsRecyclerView.setAdapter(albumCatalogueAdapter);
