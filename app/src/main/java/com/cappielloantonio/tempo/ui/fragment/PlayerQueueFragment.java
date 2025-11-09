@@ -2,12 +2,15 @@ package com.cappielloantonio.tempo.ui.fragment;
 
 import android.content.ComponentName;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.session.MediaBrowser;
@@ -223,6 +226,8 @@ public class PlayerQueueFragment extends Fragment implements ClickCallback {
 
     private void updateNowPlayingItem() {
         playerSongQueueAdapter.notifyDataSetChanged();
+        Log.d("Queue", "queue at " + playbackViewModel.state.getValue().currentSongPosition);
+        bind.playerQueueRecyclerView.scrollToPosition(playbackViewModel.state.getValue().currentSongPosition);
     }
 
     @Override
@@ -231,25 +236,12 @@ public class PlayerQueueFragment extends Fragment implements ClickCallback {
     }
 
     private void observePlayback() {
-        playbackViewModel.getCurrentSongId().observe(getViewLifecycleOwner(), id -> {
-            if (playerSongQueueAdapter != null) {
-                Boolean playing = playbackViewModel.getIsPlaying().getValue();
-                playerSongQueueAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
-        playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), playing -> {
-            if (playerSongQueueAdapter != null) {
-                String id = playbackViewModel.getCurrentSongId().getValue();
-                playerSongQueueAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
+        playbackViewModel.observePlayback(playerSongQueueAdapter, getViewLifecycleOwner());
     }
 
     private void reapplyPlayback() {
-        if (playerSongQueueAdapter != null) {
-            String id = playbackViewModel.getCurrentSongId().getValue();
-            Boolean playing = playbackViewModel.getIsPlaying().getValue();
-            playerSongQueueAdapter.setPlaybackState(id, playing != null && playing);
-        }
+        playbackViewModel.reapplyPlayback(playerSongQueueAdapter);
+        Log.d("Queue", "queue at " + playbackViewModel.state.getValue().currentSongPosition);
+        bind.playerQueueRecyclerView.scrollToPosition(playbackViewModel.state.getValue().currentSongPosition);
     }
 }

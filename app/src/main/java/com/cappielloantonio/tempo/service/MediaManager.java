@@ -88,25 +88,20 @@ public class MediaManager {
                                 boolean playing = player.getPlaybackState() == Player.STATE_READY
                                         && player.getPlayWhenReady();
 
-                                playbackViewModel.update(mediaId, playing);
+                                int position = player.getCurrentMediaItemIndex();
+
+                                playbackViewModel.update(mediaId, playing, position);
                             }
                         }
                     });
-
-                    String mediaId = browser.getCurrentMediaItem() != null
-                            ? browser.getCurrentMediaItem().mediaId
-                            : null;
-                    boolean playing = browser.getPlaybackState() == Player.STATE_READY && browser.getPlayWhenReady();
-                    playbackViewModel.update(mediaId, playing);
-
                     attachedBrowserRef = new WeakReference<>(browser);
-                } else {
-                    String mediaId = browser.getCurrentMediaItem() != null
-                            ? browser.getCurrentMediaItem().mediaId
-                            : null;
-                    boolean playing = browser.getPlaybackState() == Player.STATE_READY && browser.getPlayWhenReady();
-                    playbackViewModel.update(mediaId, playing);
                 }
+                String mediaId = browser.getCurrentMediaItem() != null
+                        ? browser.getCurrentMediaItem().mediaId
+                        : null;
+                boolean playing = browser.getPlaybackState() == Player.STATE_READY && browser.getPlayWhenReady();
+                int position = browser.getCurrentMediaItemIndex();
+                playbackViewModel.update(mediaId, playing, position);
             }
 
             @Override
@@ -191,7 +186,7 @@ public class MediaManager {
     }
 
     public static void startQueue(ListenableFuture<MediaBrowser> mediaBrowserListenableFuture, List<Child> media, int startIndex) {
-        Log.d("MediaManager", "startQueue");
+        Log.d("MediaManager", "startQueue " + media.size());
         if (mediaBrowserListenableFuture != null) {
             mediaBrowserListenableFuture.addListener(() -> {
                 Log.e(TAG, "onStartQueue");

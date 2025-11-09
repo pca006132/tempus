@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class PlayerSongQueueAdapter extends RecyclerView.Adapter<PlayerSongQueueAdapter.ViewHolder> {
+public class PlayerSongQueueAdapter extends RecyclerView.Adapter<PlayerSongQueueAdapter.ViewHolder> implements PlaybackAdapterInterface {
     private static final String TAG = "PlayerSongQueueAdapter";
     private final ClickCallback click;
 
@@ -110,6 +110,8 @@ public class PlayerSongQueueAdapter extends RecyclerView.Adapter<PlayerSongQueue
                 holder.item.fiveStarIcon.setImageDrawable(AppCompatResources.getDrawable(holder.itemView.getContext(), song.getUserRating() >= 5 ? R.drawable.ic_star : R.drawable.ic_star_outlined));
             }
         } else {
+            holder.item.preferredIcon.setVisibility(View.GONE);
+            holder.item.ratingBarLayout.setVisibility(View.GONE);
             holder.item.ratingIndicatorImageView.setVisibility(View.GONE);
         }
         holder.itemView.setOnClickListener(v -> {
@@ -132,7 +134,6 @@ public class PlayerSongQueueAdapter extends RecyclerView.Adapter<PlayerSongQueue
                     Log.w(TAG, "Error obtaining MediaBrowser", e);
                 }
             }, MoreExecutors.directExecutor());
-
         });
         bindPlaybackState(holder, song);
     }
@@ -180,6 +181,7 @@ public class PlayerSongQueueAdapter extends RecyclerView.Adapter<PlayerSongQueue
         this.mediaBrowserListenableFuture = mediaBrowserListenableFuture;
     }
 
+    @Override
     public void setPlaybackState(String mediaId, boolean playing) {
         String oldId = this.currentPlayingId;
         boolean oldPlaying = this.isPlaying;

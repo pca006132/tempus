@@ -342,26 +342,11 @@ public class SearchFragment extends Fragment implements ClickCallback {
     }
 
     private void observePlayback() {
-        playbackViewModel.getCurrentSongId().observe(getViewLifecycleOwner(), id -> {
-            if (realSongAdapter != null) {
-                Boolean playing = playbackViewModel.getIsPlaying().getValue();
-                realSongAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
-        playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), playing -> {
-            if (realSongAdapter != null) {
-                String id = playbackViewModel.getCurrentSongId().getValue();
-                realSongAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
+        playbackViewModel.observePlayback(realSongAdapter, getViewLifecycleOwner());
     }
 
     private void reapplyPlayback() {
-        if (realSongAdapter != null) {
-            String id = playbackViewModel.getCurrentSongId().getValue();
-            Boolean playing = playbackViewModel.getIsPlaying().getValue();
-            realSongAdapter.setPlaybackState(id, playing != null && playing);
-        }
+        playbackViewModel.reapplyPlayback(realSongAdapter);
     }
 
     private void setMediaBrowserListenableFuture() {
