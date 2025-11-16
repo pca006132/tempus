@@ -120,29 +120,35 @@ public class SearchFragment extends Fragment implements ClickCallback {
     private void initSearchResultView() {
         realArtistAdapter = new ArtistAdapter(this, false, false);
         artistAdapter = new SingleAdapter<>(
-                vg -> InnerFragmentSearchGroupBinding.inflate(LayoutInflater.from(vg.getContext()), vg, false),
+                vg -> {
+                    InnerFragmentSearchGroupBinding binding = InnerFragmentSearchGroupBinding.inflate(LayoutInflater.from(vg.getContext()), vg, false);
+                    CustomLinearSnapHelper artistSnapHelper = new CustomLinearSnapHelper();
+                    artistSnapHelper.attachToRecyclerView(binding.searchResultGroupRecyclerView);
+                    return binding;
+                },
                 holder -> {
                     InnerFragmentSearchGroupBinding binding = (InnerFragmentSearchGroupBinding) holder.item;
                     binding.searchResultGroupRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
                     binding.searchResultGroupRecyclerView.setHasFixedSize(true);
                     binding.searchResultGroupRecyclerView.setAdapter(realArtistAdapter);
                     binding.searchResultGroupTitle.setText(R.string.search_title_artist);
-//                    CustomLinearSnapHelper artistSnapHelper = new CustomLinearSnapHelper();
-//                    artistSnapHelper.attachToRecyclerView(binding.searchResultGroupRecyclerView);
                 }
         );
 
         realAlbumAdapter = new AlbumAdapter(this);
         albumAdapter = new SingleAdapter<>(
-                vg -> InnerFragmentSearchGroupBinding.inflate(LayoutInflater.from(vg.getContext()), vg, false),
+                vg -> {
+                    InnerFragmentSearchGroupBinding binding = InnerFragmentSearchGroupBinding.inflate(LayoutInflater.from(vg.getContext()), vg, false);
+                    CustomLinearSnapHelper artistSnapHelper = new CustomLinearSnapHelper();
+                    artistSnapHelper.attachToRecyclerView(binding.searchResultGroupRecyclerView);
+                    return binding;
+                },
                 holder -> {
                     InnerFragmentSearchGroupBinding binding = (InnerFragmentSearchGroupBinding) holder.item;
                     binding.searchResultGroupRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
                     binding.searchResultGroupRecyclerView.setHasFixedSize(true);
                     binding.searchResultGroupRecyclerView.setAdapter(realAlbumAdapter);
                     binding.searchResultGroupTitle.setText(R.string.search_title_album);
-//                    CustomLinearSnapHelper artistSnapHelper = new CustomLinearSnapHelper();
-//                    artistSnapHelper.attachToRecyclerView(binding.searchResultGroupRecyclerView);
                 }
         );
 
