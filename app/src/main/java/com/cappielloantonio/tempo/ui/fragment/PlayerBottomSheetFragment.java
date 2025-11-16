@@ -50,7 +50,7 @@ public class PlayerBottomSheetFragment extends Fragment {
     private PlayerBottomSheetViewModel playerBottomSheetViewModel;
     private ListenableFuture<MediaBrowser> mediaBrowserListenableFuture;
 
-    private Handler progressBarHandler;
+    private Handler progressBarHandler = null;
     @Nullable
     private Uri previousUri = null;
 
@@ -72,6 +72,13 @@ public class PlayerBottomSheetFragment extends Fragment {
         setHeaderBookmarksButton();
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (progressBarHandler != null)
+            progressBarHandler.post(progressBarRunnable);
     }
 
     @Override
@@ -296,6 +303,8 @@ public class PlayerBottomSheetFragment extends Fragment {
     private void defineProgressBarHandler(MediaBrowser mediaBrowser) {
         progressBarHandler = new Handler();
         progressBarRunnable = () -> {
+            if (!isResumed())
+                return;
             setProgress(mediaBrowser);
             progressBarHandler.postDelayed(progressBarRunnable, 1000);
         };

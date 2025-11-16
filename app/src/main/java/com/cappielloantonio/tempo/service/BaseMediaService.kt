@@ -1,11 +1,16 @@
 package com.cappielloantonio.tempo.service
 
+import java.util.Optional
 import android.annotation.SuppressLint
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.app.TaskStackBuilder
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -14,6 +19,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.util.Log
 import androidx.media3.common.*
 import androidx.media3.common.util.UnstableApi
@@ -23,7 +29,10 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.session.*
 import androidx.media3.session.MediaSession.ControllerInfo
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.cappielloantonio.tempo.R
+import com.cappielloantonio.tempo.glide.CustomGlideRequest
 import com.cappielloantonio.tempo.repository.QueueRepository
 import com.cappielloantonio.tempo.ui.activity.MainActivity
 import com.cappielloantonio.tempo.util.*
@@ -71,6 +80,26 @@ open class BaseMediaService : MediaLibraryService() {
             widgetUpdateHandler.postDelayed(this, WIDGET_UPDATE_INTERVAL_MS)
         }
     }
+    private val broadCastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(contxt: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    Log.d("MediaService", "screenOn");
+                    screenOn = true
+                    widgetUpdateHandler.post(widgetUpdateRunnable)
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    Log.d("MediaService", "screenOff");
+                    screenOn = false
+                }
+            }
+        }
+    }
+    private var prevPlayerStates = Triple(false, false, -1)
+    @Volatile private var nowPlayingChanged = false
+    @Volatile private var artCacheUpdated = false
+    @Volatile private var artCache : Bitmap? = null
+    @Volatile private var screenOn = true
 
     private val binder = LocalBinder()
 
@@ -167,6 +196,9 @@ open class BaseMediaService : MediaLibraryService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 Log.d(javaClass.toString(), "onIsPlayingChanged " + player.currentMediaItemIndex)
+                nowPlayingChanged = true
+                artCacheUpdated = false
+                artCache = null
                 if (!isPlaying) {
                     MediaManager.setPlayingPausedTimestamp(
                         player.currentMediaItem,
@@ -272,6 +304,7 @@ open class BaseMediaService : MediaLibraryService() {
         initializeEqualizerManager()
         initializeNetworkListener()
         restorePlayerFromQueue(mediaLibrarySession.player)
+        initializeScreenListener()
     }
 
     override fun onGetSession(controllerInfo: ControllerInfo): MediaLibrarySession {
@@ -279,6 +312,7 @@ open class BaseMediaService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        unregisterReceiver(broadCastReceiver)
         releaseNetworkCallback()
         equalizerManager.release()
         stopWidgetUpdates()
@@ -339,6 +373,12 @@ open class BaseMediaService : MediaLibraryService() {
         updateMediaItems(mediaLibrarySession.player)
     }
 
+    private fun initializeScreenListener() {
+        val filter = IntentFilter(Intent.ACTION_SCREEN_ON)
+        filter.addAction(Intent.ACTION_SCREEN_OFF)
+        registerReceiver(broadCastReceiver, filter)
+    }
+
     private fun initializeLoadControl(): DefaultLoadControl {
         return DefaultLoadControl.Builder()
             .setBufferDurationsMs(
@@ -372,21 +412,39 @@ open class BaseMediaService : MediaLibraryService() {
             ?: AssetLinkUtil.buildLink(AssetLinkUtil.TYPE_ARTIST, extras?.getString("artistId"))
         val position = player.currentPosition.takeIf { it != C.TIME_UNSET } ?: 0L
         val duration = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
-        WidgetUpdateManager.updateFromState(
-            this,
-            title ?: "",
-            artist ?: "",
-            album ?: "",
-            coverId,
-            player.isPlaying,
-            player.shuffleModeEnabled,
-            player.repeatMode,
-            position,
-            duration,
-            songLink,
-            albumLink,
-            artistLink
-        )
+
+        if (!TextUtils.isEmpty(coverId) && nowPlayingChanged) {
+            CustomGlideRequest.loadAlbumArtBitmap(
+                applicationContext,
+                coverId,
+                WidgetUpdateManager.WIDGET_SAFE_ART_SIZE,
+                CustomGlideTarget())
+        }
+
+        val newPlayerState = Triple(player.isPlaying, player.shuffleModeEnabled, player.repeatMode)
+        if (nowPlayingChanged || prevPlayerStates != newPlayerState) {
+            WidgetUpdateManager.updateFromState(
+                this,
+                title ?: "",
+                artist ?: "",
+                album ?: "",
+                Optional.ofNullable(artCache),
+                player.isPlaying,
+                player.shuffleModeEnabled,
+                player.repeatMode,
+                position,
+                duration,
+                songLink,
+                albumLink,
+                artistLink
+            )
+            prevPlayerStates = newPlayerState
+            Log.d("MediaService", "fullUpdate");
+        } else {
+            WidgetUpdateManager.updateProgress(this, position, duration)
+            Log.d("MediaService", "updateProgress");
+        }
+        nowPlayingChanged = false
     }
 
     private fun scheduleWidgetUpdates() {
@@ -586,6 +644,16 @@ open class BaseMediaService : MediaLibraryService() {
     inner class LocalBinder : Binder() {
         fun getEqualizerManager(): EqualizerManager {
             return equalizerManager
+        }
+    }
+
+    private inner class CustomGlideTarget : CustomTarget<Bitmap>() {
+        override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+            artCache = resource
+        }
+
+        override fun onLoadCleared(placeholder: Drawable?) {
+            artCache = null
         }
     }
 }
