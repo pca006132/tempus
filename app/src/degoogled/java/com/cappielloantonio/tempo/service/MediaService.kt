@@ -27,6 +27,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.session.*
 import androidx.media3.session.MediaSession.ControllerInfo
 import com.bumptech.glide.request.target.CustomTarget
@@ -145,17 +146,28 @@ class MediaService : MediaLibraryService() {
                 wasWifi = isWifi
                 widgetUpdateHandler.post(Runnable {
                     Log.d("MediaService", "update item due to network change");
-                    val pos = player.currentPosition
-                    val k = player.currentMediaItemIndex
-                    val old = player.getMediaItemAt(k)
-                    val item = MappingUtil.mapMediaItem(old)
-                    if (item.requestMetadata.mediaUri != old.requestMetadata.mediaUri) {
-                        player.replaceMediaItem(k, item)
-                        player.seekTo(pos)
-                    }
+                    updateMediaItems()
+//                    val pos = player.currentPosition
+//                    val k = player.currentMediaItemIndex
+//                    val old = player.getMediaItemAt(k)
+//                    val item = MappingUtil.mapMediaItem(old)
+//                    if (item.requestMetadata.mediaUri != old.requestMetadata.mediaUri) {
+//                        player.replaceMediaItem(k, item)
+//                        player.seekTo(pos)
+//                    }
                 })
             }
         }
+    }
+
+    fun updateMediaItems() {
+        Log.d("MediaService", "update items");
+        val n = player.mediaItemCount
+        val k = player.currentMediaItemIndex
+        val current = player.currentPosition
+        val items = (0 .. n-1).map{i -> MappingUtil.mapMediaItem(player.getMediaItemAt(i))}
+        player.clearMediaItems()
+        player.setMediaItems(items, k, current)
     }
 
     override fun onCreate() {
@@ -325,13 +337,6 @@ class MediaService : MediaLibraryService() {
             .setLoadControl(initializeLoadControl())
             .build()
 
-//        val params = player.trackSelectionParameters.buildUpon()
-//            .setAudioOffloadPreferences(
-//                TrackSelectionParameters.AudioOffloadPreferences.Builder().setAudioOffloadMode(
-//                    TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
-//                ).build()
-//            ).build()
-//        player.trackSelectionParameters = params
         player.shuffleModeEnabled = Preferences.isShuffleModeEnabled()
         player.repeatMode = Preferences.getRepeatMode()
     }
@@ -417,43 +422,45 @@ class MediaService : MediaLibraryService() {
             }
 
             override fun onTracksChanged(tracks: Tracks) {
-                Log.d(TAG, "onTracksChanged");
+                Log.d(TAG, "onTracksChanged " + player.currentMediaItemIndex);
                 ReplayGainUtil.setReplayGain(player, tracks)
                 val currentMediaItem = player.currentMediaItem
 
-                Log.d("Player", "trackChanged");
                 if (currentMediaItem != null) {
                     val item = MappingUtil.mapMediaItem(currentMediaItem)
-                    Log.d("Player", "url1: " + item.requestMetadata.mediaUri);
-                    Log.d("Player", "url2: " + currentMediaItem.requestMetadata.mediaUri);
-                    if (!item.requestMetadata.mediaUri!!.equals(currentMediaItem.requestMetadata.mediaUri)) {
-                        Log.d("Player", "replaced 1");
-                        player.replaceMediaItem(player.currentMediaItemIndex, item)
-                    }
-
-                    if (item.mediaMetadata.extras != null) {
+                    if (item.mediaMetadata.extras != null)
                         MediaManager.scrobble(item, false)
+
+                    val next = if (player.shuffleModeEnabled)
+                        player.shuffleOrder.getNextIndex(player.currentMediaItemIndex)
+                    else {
+                        if (player.currentMediaItemIndex + 1 < player.mediaItemCount)
+                            player.currentMediaItemIndex + 1
+                        else if (player.repeatMode == REPEAT_MODE_ALL)
+                            0
+                        else
+                            C.INDEX_UNSET
+                    }
+                    if (next == C.INDEX_UNSET) {
+                        MediaManager.continuousPlay(player.currentMediaItem)
                     }
                 }
 
-                if (player.currentMediaItemIndex + 1 < player.mediaItemCount) {
-                    val old = player.getMediaItemAt(player.currentMediaItemIndex + 1);
-                    val item = MappingUtil.mapMediaItem(old);
-                    if (!item.requestMetadata.mediaUri!!.equals(old.requestMetadata.mediaUri)) {
-                        Log.d("Player", "replaced 2");
-                        player.replaceMediaItem(
-                            player.currentMediaItemIndex + 1,
-                            item )
-                    }
+                // https://stackoverflow.com/questions/56937283/exoplayer-shuffle-doesnt-reproduce-all-the-songs
+                if (MediaManager.justStarted.get()) {
+                    Log.d(TAG, "update shuffle order");
+                    MediaManager.justStarted.set(false);
+                    var shuffledList = IntArray(player.mediaItemCount) { i -> i }
+                    Log.d(TAG, shuffledList.map{i -> i.toString()}.joinToString(","))
+                    shuffledList.shuffle()
+                    val index = shuffledList.indexOf(player.currentMediaItemIndex)
+                    Log.d(TAG, shuffledList.map{i -> i.toString()}.joinToString(","))
+                    if (index > -1 && shuffledList.isNotEmpty())
+                        run { val tmp = shuffledList[0]; shuffledList[0] = shuffledList[index]; shuffledList[index] = tmp}
+                    Log.d(TAG, shuffledList.map{i -> i.toString()}.joinToString(","))
+                    player.shuffleOrder = DefaultShuffleOrder(shuffledList, kotlin.random.Random.nextLong())
                 }
 
-                if (player.currentMediaItemIndex + 1 == player.mediaItemCount) {
-                    if (player.repeatMode == REPEAT_MODE_ALL && player.mediaItemCount > 1)
-                        player.replaceMediaItem(
-                            0,
-                            MappingUtil.mapMediaItem(player.getMediaItemAt(0)))
-                    MediaManager.continuousPlay(player.currentMediaItem)
-                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
