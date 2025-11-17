@@ -96,7 +96,6 @@ public class AlbumPageFragment extends Fragment implements ClickCallback {
         initializeMediaBrowser();
 
         MediaManager.registerPlaybackObserver(mediaBrowserListenableFuture, playbackViewModel);
-        observePlayback();
     }
 
     public void onResume() {
@@ -316,6 +315,8 @@ public class AlbumPageFragment extends Fragment implements ClickCallback {
                 bind.songRecyclerView.setHasFixedSize(true);
 
                 songHorizontalAdapter = new SongHorizontalAdapter(getViewLifecycleOwner(), this, false, false, album);
+                observePlayback();
+
                 bind.songRecyclerView.setAdapter(songHorizontalAdapter);
                 setMediaBrowserListenableFuture();
                 reapplyPlayback();
@@ -348,26 +349,11 @@ public class AlbumPageFragment extends Fragment implements ClickCallback {
     }
 
     private void observePlayback() {
-        playbackViewModel.getCurrentSongId().observe(getViewLifecycleOwner(), id -> {
-            if (songHorizontalAdapter != null) {
-                Boolean playing = playbackViewModel.getIsPlaying().getValue();
-                songHorizontalAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
-        playbackViewModel.getIsPlaying().observe(getViewLifecycleOwner(), playing -> {
-            if (songHorizontalAdapter != null) {
-                String id = playbackViewModel.getCurrentSongId().getValue();
-                songHorizontalAdapter.setPlaybackState(id, playing != null && playing);
-            }
-        });
+        playbackViewModel.observePlayback(songHorizontalAdapter, getViewLifecycleOwner());
     }
 
     private void reapplyPlayback() {
-        if (songHorizontalAdapter != null) {
-            String id = playbackViewModel.getCurrentSongId().getValue();
-            Boolean playing = playbackViewModel.getIsPlaying().getValue();
-            songHorizontalAdapter.setPlaybackState(id, playing != null && playing);
-        }
+        playbackViewModel.reapplyPlayback(songHorizontalAdapter);
     }
 
     private void setMediaBrowserListenableFuture() {
