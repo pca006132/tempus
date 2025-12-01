@@ -86,6 +86,7 @@ public class DownloaderManager {
         downloads2.put(download.getId(), download);
         download.setDownloadUri(mediaItem.requestMetadata.mediaUri.toString());
 
+        Log.d("DownloaderManager", "send add download");
         DownloadService.sendAddDownload(context, DownloaderService.class, buildDownloadRequest(mediaItem), false);
         insertDatabase(download);
     }
@@ -105,6 +106,7 @@ public class DownloaderManager {
     }
 
     private void remove(MediaItem mediaItem, com.cappielloantonio.tempo.model.Download download) {
+        Log.d("DownloaderManager", "remove");
         DownloadService.sendRemoveDownload(context, DownloaderService.class, buildDownloadRequest(mediaItem).id, false);
         deleteDatabase(download.getId());
         downloads.remove(download.getId());
@@ -119,6 +121,7 @@ public class DownloaderManager {
 
     public void removeAll() {
         executor.submit(() -> {
+            Log.d("DownloaderManager", "delete all");
             DownloadService.sendRemoveAllDownloads(context, DownloaderService.class, false);
             deleteAllDatabase();
             DownloadUtil.eraseDownloadFolder(context);
@@ -136,7 +139,7 @@ public class DownloaderManager {
         }
     }
 
-    public String getDownloadNotificationMessage(String id) {
+    public static String getDownloadNotificationMessage(String id) {
         com.cappielloantonio.tempo.model.Download download = getDownloadRepository().getDownload(id);
         return download != null ? download.getTitle() : null;
     }
@@ -150,12 +153,13 @@ public class DownloaderManager {
 
     public void removeRequestDownload(Download download) {
         executor.submit(() -> {
+            Log.d("DownloaderManager", "remove request download");
             deleteDatabase(download.request.id);
             downloads.remove(download.request.id);
         });
     }
 
-    private DownloadRepository getDownloadRepository() {
+    private static DownloadRepository getDownloadRepository() {
         return new DownloadRepository();
     }
 

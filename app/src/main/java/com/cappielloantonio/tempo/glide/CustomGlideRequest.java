@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -21,6 +22,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.signature.ObjectKey;
 import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
+import com.cappielloantonio.tempo.util.NetworkUtil;
 import com.cappielloantonio.tempo.util.Preferences;
 import com.cappielloantonio.tempo.util.Util;
 import com.google.android.material.elevation.SurfaceColors;
@@ -81,7 +83,7 @@ public class CustomGlideRequest {
         }
     }
 
-    public static String createUrl(String item, int size) {
+    private static String createUrl(String item, int size) {
         Map<String, String> params = App.getSubsonicClientInstance(false).getParams();
 
         StringBuilder uri = new StringBuilder();
@@ -111,14 +113,21 @@ public class CustomGlideRequest {
         return uri.toString();
     }
 
+    public static Uri createArtworkUri(String item, int size) {
+        if (NetworkUtil.isWifi() || !Preferences.isDataSavingMode())
+            return Uri.parse(createUrl(item, size));
+        return null;
+    }
+
     public static void loadAlbumArtBitmap(Context context,
                                           String coverId,
                                           int size,
                                           CustomTarget<Bitmap> target) {
-        String url = createUrl(coverId, size);
+        Uri uri = createArtworkUri(coverId, size);
+        if (uri == null) return;
         Glide.with(context)
                 .asBitmap()
-                .load(url)
+                .load(uri)
                 .apply(createRequestOptions(context, coverId, ResourceType.Album))
                 .into(target);
     }
@@ -130,7 +139,7 @@ public class CustomGlideRequest {
         private Builder(Context context, String item, ResourceType type) {
             this.requestManager = Glide.with(context);
 
-            if (item != null && !Preferences.isDataSavingMode()) {
+            if (item != null && (NetworkUtil.isWifi() || !Preferences.isDataSavingMode())) {
                 this.item = createUrl(item, Preferences.getImageSize());
             }
 

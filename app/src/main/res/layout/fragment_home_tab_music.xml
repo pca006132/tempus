@@ -971,7 +971,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="@string/home_option_reorganize"
-            android:visibility="gone"
+            android:visibility="visible"
             tools:visibility="visible"/>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

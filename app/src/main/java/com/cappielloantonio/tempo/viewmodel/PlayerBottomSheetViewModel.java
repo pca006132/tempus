@@ -137,7 +137,7 @@ public class PlayerBottomSheetViewModel extends AndroidViewModel {
 
         media.setStarred(new Date());
 
-        if (Preferences.isStarredSyncEnabled() && Preferences.getDownloadDirectoryUri() == null) {
+        if (Preferences.isStarredSyncEnabled() && Preferences.getDownloadDirectoryUri() == null && NetworkUtil.isWifi()) {
             DownloadUtil.getDownloadTracker(context).download(List.of(media));
         }
     }

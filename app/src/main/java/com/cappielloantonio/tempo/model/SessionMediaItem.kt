@@ -197,7 +197,7 @@ class SessionMediaItem() {
 
     fun getMediaItem(): MediaItem {
         val uri: Uri = getStreamUri()
-        val artworkUri = Uri.parse(CustomGlideRequest.createUrl(coverArtId, getImageSize()))
+        val artworkUri = CustomGlideRequest.createArtworkUri(coverArtId, getImageSize())
 
         val bundle = Bundle()
         bundle.putString("id", id)

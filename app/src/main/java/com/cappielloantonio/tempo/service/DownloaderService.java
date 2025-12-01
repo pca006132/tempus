@@ -5,6 +5,8 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.media3.common.util.Log;
+import androidx.media3.common.util.NotificationUtil;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.offline.Download;
 import androidx.media3.exoplayer.offline.DownloadManager;
@@ -13,6 +15,7 @@ import androidx.media3.exoplayer.scheduler.PlatformScheduler;
 import androidx.media3.exoplayer.scheduler.Requirements;
 import androidx.media3.exoplayer.scheduler.Scheduler;
 
+import com.cappielloantonio.tempo.App;
 import com.cappielloantonio.tempo.R;
 import com.cappielloantonio.tempo.util.DownloadUtil;
 
@@ -45,6 +48,7 @@ public class DownloaderService extends androidx.media3.exoplayer.offline.Downloa
     @NonNull
     @Override
     protected Notification getForegroundNotification(@NonNull List<Download> downloads, @Requirements.RequirementFlags int notMetRequirements) {
+        Log.d("DownloaderService", "downloads: " + downloads.size());
         return DownloadUtil.getDownloadNotificationHelper(this).buildProgressNotification(this, R.drawable.ic_download, null, null, downloads, notMetRequirements);
     }
 
@@ -88,23 +92,25 @@ public class DownloaderService extends androidx.media3.exoplayer.offline.Downloa
         @Override
         public void onDownloadChanged(@NonNull DownloadManager downloadManager, Download download, @Nullable Exception finalException) {
             DownloadUtil.getDownloadTracker(context).updateRequestDownload(download);
-//            App.getExecutor().submit(() -> {
-//                Notification notification;
-//
-//                if (download.state == Download.STATE_COMPLETED) {
-//                    notification = notificationHelper.buildDownloadCompletedNotification(context, R.drawable.ic_check_circle, null, DownloaderManager.getDownloadNotificationMessage(download.request.id));
-//                    notification = Notification.Builder.recoverBuilder(context, notification).setGroup(DownloadUtil.DOWNLOAD_NOTIFICATION_SUCCESSFUL_GROUP).build();
-//                    NotificationUtil.setNotification(this.context, successfulDownloadGroupNotificationId, successfulDownloadGroupNotification);
-//                } else if (download.state == Download.STATE_FAILED) {
-//                    notification = notificationHelper.buildDownloadFailedNotification(context, R.drawable.ic_error, null, DownloaderManager.getDownloadNotificationMessage(download.request.id));
-//                    notification = Notification.Builder.recoverBuilder(context, notification).setGroup(DownloadUtil.DOWNLOAD_NOTIFICATION_FAILED_GROUP).build();
-//                    NotificationUtil.setNotification(this.context, failedDownloadGroupNotificationId, failedDownloadGroupNotification);
-//                } else {
-//                    return;
-//                }
-//
-//                NotificationUtil.setNotification(context, nextNotificationId++, notification);
-//            });
+            App.getExecutor().submit(() -> {
+                Notification notification;
+
+                if (download.state == Download.STATE_COMPLETED) {
+                    notification = notificationHelper.buildDownloadCompletedNotification(context, R.drawable.ic_check_circle, null,
+                            DownloaderManager.getDownloadNotificationMessage(download.request.id));
+                    notification = Notification.Builder.recoverBuilder(context, notification).setGroup(DownloadUtil.DOWNLOAD_NOTIFICATION_SUCCESSFUL_GROUP).build();
+                    NotificationUtil.setNotification(this.context, successfulDownloadGroupNotificationId, successfulDownloadGroupNotification);
+                } else if (download.state == Download.STATE_FAILED) {
+                    notification = notificationHelper.buildDownloadFailedNotification(context, R.drawable.ic_error, null,
+                            DownloaderManager.getDownloadNotificationMessage(download.request.id));
+                    notification = Notification.Builder.recoverBuilder(context, notification).setGroup(DownloadUtil.DOWNLOAD_NOTIFICATION_FAILED_GROUP).build();
+                    NotificationUtil.setNotification(this.context, failedDownloadGroupNotificationId, failedDownloadGroupNotification);
+                } else {
+                    return;
+                }
+
+                NotificationUtil.setNotification(context, nextNotificationId++, notification);
+            });
         }
 
         @Override

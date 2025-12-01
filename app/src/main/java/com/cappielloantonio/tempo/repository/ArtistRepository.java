@@ -116,12 +116,15 @@ public class ArtistRepository {
                             List<ArtistID3> artists = response.body().getSubsonicResponse().getStarred2().getArtists();
 
                             if (artists != null) {
-                                if (!random) {
-                                    getArtistInfo(artists, starredArtists);
-                                } else {
+                                if (random)
                                     Collections.shuffle(artists);
-                                    getArtistInfo(artists.subList(0, Math.min(size, artists.size())), starredArtists);
-                                }
+                                starredArtists.postValue(artists);
+//                                if (!random) {
+//                                    getArtistInfo(artists, starredArtists);
+//                                } else {
+//                                    Collections.shuffle(artists);
+//                                    getArtistInfo(artists.subList(0, Math.min(size, artists.size())), starredArtists);
+//                                }
                             }
                         }
                     }

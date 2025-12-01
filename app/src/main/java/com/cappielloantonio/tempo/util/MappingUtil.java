@@ -30,7 +30,7 @@ public class MappingUtil {
 
     public static MediaItem mapMediaItem(Child media) {
         Uri uri = getUri(media);
-        Uri artworkUri = Uri.parse(CustomGlideRequest.createUrl(media.getCoverArtId(), Preferences.getImageSize()));
+        Uri artworkUri = CustomGlideRequest.createArtworkUri(media.getCoverArtId(), Preferences.getImageSize());
 
         Bundle bundle = new Bundle();
         bundle.putString("id", media.getId());
@@ -194,7 +194,7 @@ public class MappingUtil {
 
     public static MediaItem mapMediaItem(PodcastEpisode podcastEpisode) {
         Uri uri = getUri(podcastEpisode);
-        Uri artworkUri = Uri.parse(CustomGlideRequest.createUrl(podcastEpisode.getCoverArtId(), Preferences.getImageSize()));
+        Uri artworkUri = CustomGlideRequest.createArtworkUri(podcastEpisode.getCoverArtId(), Preferences.getImageSize());
 
         Bundle bundle = new Bundle();
         bundle.putString("id", podcastEpisode.getId());

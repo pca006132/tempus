@@ -72,7 +72,7 @@ open class BaseMediaService : MediaLibraryService() {
     private val widgetUpdateRunnable = object : Runnable {
         override fun run() {
             val player = mediaLibrarySession.player
-            if (!player.isPlaying) {
+            if (!player.isPlaying || !screenOn) {
                 widgetUpdateScheduled = false
                 return
             }
